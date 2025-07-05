@@ -18,7 +18,7 @@ type (
 )
 
 type baseCache struct {
-	mu         sync.RWMutex
+	mu         sync.Mutex
 	size       int
 	loaderFunc LoaderFunc
 	loadGroup  LoadGroup
@@ -71,15 +71,19 @@ func (cache *LFUCache) GetFreq(buckets *list.Element) int {
 }
 
 func (cache *LFUCache) Get(key string) (string, error) {
+	cache.mu.Lock()
 	if item, ok := cache.cache[key]; ok {
 		// Move item to the higher bucket
+		v := item.value
 		err := cache.moveToHigherBucket(item)
 		if err != nil {
 			return "", err
 		}
+		cache.mu.Unlock()
 
-		return item.value, nil
+		return v, nil
 	}
+	cache.mu.Unlock()
 
 	// Miss, so load value
 	value, err := cache.loaderFunc(key)
@@ -105,6 +109,9 @@ func (cache *LFUCache) GetKeys() []string {
 }
 
 func (cache *LFUCache) Set(key, value string) error {
+	cache.mu.Lock()
+	defer cache.mu.Unlock()
+
 	if item, ok := cache.cache[key]; ok {
 		item.value = value
 		return nil
