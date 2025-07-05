@@ -61,6 +61,15 @@ func NewLFUCache(size int, loaderFunc LoaderFunc) (*LFUCache, error) {
 	return cache, nil
 }
 
+// For testing
+func (cache *LFUCache) GetBuckets() *list.List {
+	return cache.list
+}
+
+func (cache *LFUCache) GetFreq(buckets *list.Element) int {
+	return buckets.Value.(*lruEntry).freq
+}
+
 func (cache *LFUCache) Get(key string) (string, error) {
 	if item, ok := cache.cache[key]; ok {
 		// Move item to the higher bucket
