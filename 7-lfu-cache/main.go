@@ -10,6 +10,7 @@ var EMPTY_ERROR = errors.New("EMPTY ERROR")
 
 type Cache interface {
 	Get(key string) (string, error)
+	GetWithoutLoad(key string) (string, error)
 	Set(key, value string) error
 }
 
@@ -39,9 +40,6 @@ type lfuItem struct {
 	value string
 	key   string
 	el    *list.Element // Reference to lruEntry
-}
-
-type LoadGroup struct {
 }
 
 func NewLFUCache(size int, loaderFunc LoaderFunc) (*LFUCache, error) {
@@ -97,6 +95,10 @@ func (cache *LFUCache) Get(key string) (string, error) {
 	}
 
 	return value, nil
+}
+
+func load(key string) (string, error) {
+
 }
 
 func (cache *LFUCache) GetKeys() []string {
