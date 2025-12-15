@@ -38,7 +38,7 @@ func (op *mockQueryOperation) run(ctx context.Context) {
 	// Simulate query execution time
 	queryDuration := 3 * time.Second // Default query duration
 	if op.query == "FAST QUERY" {
-		queryDuration = 500 * time.Millisecond // A faster query
+		queryDuration = 500 * time.Millisecond // Iteration faster query
 	}
 
 	log.Printf("Mock QueryOperation: Starting execution for '%s' (will take %v)", op.query, queryDuration)
