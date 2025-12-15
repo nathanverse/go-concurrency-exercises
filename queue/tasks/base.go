@@ -4,12 +4,14 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"net"
 )
 
 const (
 	SumTaskType     = "sum"
 	HashTaskType    = "hash"
 	BurnCPUTaskType = "BurnCPUTask"
+	SlowAPITaskType = "SlowAPITask"
 )
 
 type Task struct {
@@ -79,4 +81,27 @@ func BurnCPUTask(input []byte) ([]byte, error) {
 
 	bytes, _ := json.Marshal(inputType)
 	return bytes, nil
+}
+
+type SlowAPITaskInput struct {
+	Addr string `json:"addr"`
+}
+
+func SlowAPITask(input []byte) ([]byte, error) {
+	inputType := SlowAPITaskInput{}
+	if err := json.Unmarshal(input, &inputType); err != nil {
+		return nil, err
+	}
+
+	conn, err := net.Dial("tcp", inputType.Addr)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	fmt.Fprintln(conn, "ping")
+
+	buf := make([]byte, 16)
+	_, err = conn.Read(buf)
+	return []byte("ok"), err
 }

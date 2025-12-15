@@ -1,24 +1,80 @@
-package cpu_bound
+package io_bound
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/pkg/profile"
 	"strconv"
 	"testing"
 	"time"
-
+	"vu/benchmark/queue/helpers"
 	"vu/benchmark/queue/internal"
 	"vu/benchmark/queue/tasks"
 )
 
-func TestBench(t *testing.T) {
+func BenchmarkTestIOBound(b *testing.B) {
 	defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
-	const iterations = 3_000_000_000
-
-	poolSize := 16
+	poolSize := 128
 	capacity := 1_000
 
-	payload, err := json.Marshal(tasks.BurnCPUTaskInput{Iteration: iterations})
+	ip, _ := helpers.GetOutboundIP()
+
+	payload, err := json.Marshal(tasks.SlowAPITaskInput{Addr: fmt.Sprintf("%s:%d", ip, 8082)})
+	if err != nil {
+		b.Fatalf("marshal hash input: %v", err)
+	}
+
+	queue := internal.NewQueue(capacity, poolSize, true)
+	pending := make(chan (<-chan internal.Output), capacity)
+	for i := 0; i < 5; i++ {
+		go func() {
+			for ch := range pending {
+				out := <-ch
+
+				if out.Err != nil {
+					b.Logf("task failed: %v", out.Err)
+				} else {
+					//b.Logf("task ok: %s", out.Res)
+				}
+			}
+		}()
+	}
+
+	i := 0
+	b.ResetTimer()
+	for i < 100 {
+		task := tasks.Task{
+			Id:    strconv.Itoa(i),
+			Type:  tasks.SlowAPITaskType,
+			Input: payload,
+		}
+
+		ch, err := queue.Put(&task)
+		if err != nil {
+			//b.Logf("Error when put task %d: %v", i, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		//b.Logf("put task %d", i)
+		pending <- ch
+		i++
+	}
+
+	queue.Shutdown()
+	close(pending)
+	b.StopTimer()
+	time.Sleep(1 * time.Second)
+}
+
+func TestIOBound(t *testing.T) {
+	defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+	poolSize := 8
+	capacity := 1_000
+
+	ip, _ := helpers.GetOutboundIP()
+
+	payload, err := json.Marshal(tasks.SlowAPITaskInput{Addr: fmt.Sprintf("%s:%d", ip, 8082)})
 	if err != nil {
 		t.Fatalf("marshal hash input: %v", err)
 	}
@@ -43,7 +99,7 @@ func TestBench(t *testing.T) {
 	for i < 100 {
 		task := tasks.Task{
 			Id:    strconv.Itoa(i),
-			Type:  tasks.BurnCPUTaskType,
+			Type:  tasks.SlowAPITaskType,
 			Input: payload,
 		}
 
@@ -60,62 +116,6 @@ func TestBench(t *testing.T) {
 	}
 
 	queue.Shutdown()
-	close(pending)
-	time.Sleep(1 * time.Second)
-}
-
-// Benchmark queue throughput for the hash task using a fixed iteration count.
-func BenchmarkQueueHashFixedIterations(b *testing.B) {
-	defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
-	const iterations = 3_000_000_000
-
-	poolSize := 8
-	capacity := 1_000
-
-	payload, err := json.Marshal(tasks.BurnCPUTaskInput{Iteration: iterations})
-	if err != nil {
-		b.Fatalf("marshal hash input: %v", err)
-	}
-
-	queue := internal.NewQueue(capacity, poolSize, true)
-	pending := make(chan (<-chan internal.Output), capacity)
-	for i := 0; i < 5; i++ {
-		go func() {
-			for ch := range pending {
-				out := <-ch
-
-				if out.Err != nil {
-					b.Logf("task failed: %v", out.Err)
-				} else {
-					//b.Logf("task ok: %s", out.Res)
-				}
-			}
-		}()
-	}
-
-	i := 0
-	b.ResetTimer()
-	for i < b.N {
-		task := tasks.Task{
-			Id:    strconv.Itoa(i),
-			Type:  tasks.BurnCPUTaskType,
-			Input: payload,
-		}
-
-		ch, err := queue.Put(&task)
-		if err != nil {
-			//b.Logf("Error when put task %d: %v", i, err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
-
-		//b.Logf("put task %d", i)
-		pending <- ch
-		i++
-	}
-
-	queue.Shutdown()
-	b.StopTimer()
 	close(pending)
 	time.Sleep(1 * time.Second)
 }

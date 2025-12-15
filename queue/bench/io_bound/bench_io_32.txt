@@ -1,0 +1,11 @@
+goos: darwin
+goarch: arm64
+pkg: vu/benchmark/queue/bench/io_bound
+cpu: Apple M2
+BenchmarkTestIOBound-8   	       1	4340315375 ns/op	  124848 B/op	    2542 allocs/op
+BenchmarkTestIOBound-8   	       1	4381383667 ns/op	  126416 B/op	    2556 allocs/op
+BenchmarkTestIOBound-8   	       1	4254981208 ns/op	  139728 B/op	    2546 allocs/op
+BenchmarkTestIOBound-8   	       1	4322861959 ns/op	  118560 B/op	    2526 allocs/op
+BenchmarkTestIOBound-8   	       1	4258362042 ns/op	  118624 B/op	    2526 allocs/op
+PASS
+ok  	vu/benchmark/queue/bench/io_bound	27.175s

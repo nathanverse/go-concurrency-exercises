@@ -120,6 +120,8 @@ func Execute(task _taskWrapper) ([]byte, error) {
 		return tasks.HashTask(input.Iteration), nil
 	case tasks.BurnCPUTaskType:
 		return tasks.BurnCPUTask(task.task.Input)
+	case tasks.SlowAPITaskType:
+		return tasks.SlowAPITask(task.task.Input)
 	default:
 		{
 			return nil, errors.New("invalid tasks type")

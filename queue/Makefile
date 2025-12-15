@@ -17,3 +17,7 @@ client:
 
 profmem:
 	go tool pprof -http=:$(PPROF_PORT) $(PPROF_FILE)
+
+benchIO:
+	go test -run=^$ -bench=BenchmarkTestIOBound -benchmem -count=1 ./bench/io_bound
+
